@@ -15,22 +15,44 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 @Slf4j
 @Configuration
 public class SeleniumTest {
+    private static BlockingQueue<WebDriver> driverPool;
 
     @Bean
     public ApplicationRunner test() {
         return args -> {
-            ExecutorService executorService = Executors.newFixedThreadPool(4);
+            initializeDriverPool(20);
+            ExecutorService executorService = Executors.newFixedThreadPool(20);
             // System Property 설정
             System.setProperty("webdriver.chrome.driver", "/Users/myunghan/Desktop/test/spring-Crawling/driver/chromedriver");
-
             Integer[] ids = {
                     167662, 167146, 166844, 166683, 164973, 164489, 165677, 167333, 167335, 167348,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
@@ -55,9 +77,10 @@ public class SeleniumTest {
                 executorService.submit(() -> {
                     ChromeOptions options = new ChromeOptions();
                     options.addArguments("headless", "disable-gpu", "window-size=1920x1080",
-                            "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
+                            "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+                            "blink-settings=imagesEnabled=false"
                             );
-                    WebDriver driver = new ChromeDriver(options);
+                    WebDriver driver = getDriverFromPool();
                     driver.get("https://www.wanted.co.kr/wd/" + id);
 
                     WebElement element = driver.findElement(By.className("JobDescription_JobDescription__VWfcb"));
@@ -79,12 +102,49 @@ public class SeleniumTest {
                     log.info("{}", deadline);
                     log.info("{}", workingArea);
 
-                    // 브라우저 닫기
-                    driver.quit();
+                    returnDriverToPool(driver);
                 });
             }
 
             executorService.shutdown();
+
+            new Thread(() -> {
+                try {
+                    if (executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)) {
+                        driverPool.forEach(WebDriver::quit);
+                    }
+                } catch (InterruptedException e) {
+                    System.err.println("Interrupted while waiting for tasks to complete.");
+                }
+            }).start();
         };
+
+
+    }
+
+    private static void initializeDriverPool(int size) {
+        driverPool = new LinkedBlockingQueue<>();
+
+        for (int i = 0; i < size; i++) {
+            ChromeOptions options = new ChromeOptions();
+            options.addArguments("headless", "disable-gpu", "window-size=1920x1080",
+                    "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+                    "blink-settings=imagesEnabled=false"
+            );
+            WebDriver driver = new ChromeDriver(options);
+            driverPool.add(driver);
+        }
+    }
+
+    private static WebDriver getDriverFromPool() {
+        try {
+            return driverPool.take();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void returnDriverToPool(WebDriver driver) {
+        driverPool.add(driver);
     }
 }
