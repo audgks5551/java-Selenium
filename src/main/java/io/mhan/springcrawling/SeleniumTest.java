@@ -20,12 +20,12 @@ import java.util.concurrent.*;
 @Slf4j
 @Configuration
 public class SeleniumTest {
-    private static BlockingQueue<WebDriver> driverPool;
+    private static ConcurrentLinkedQueue<WebDriver> driverPool;
 
     @Bean
     public ApplicationRunner test() {
         return args -> {
-            initializeDriverPool(20);
+            initializeDriverPool(30);
             ExecutorService executorService = Executors.newFixedThreadPool(20);
             // System Property 설정
             System.setProperty("webdriver.chrome.driver", "/Users/myunghan/Desktop/test/spring-Crawling/driver/chromedriver");
@@ -41,6 +41,7 @@ public class SeleniumTest {
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    167662, 167146, 166844, 166683, 164973, 164489, 165677, 167333, 167335, 167348,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
@@ -51,6 +52,7 @@ public class SeleniumTest {
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    167662, 167146, 166844, 166683, 164973, 164489, 165677, 167333, 167335, 167348,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
@@ -61,6 +63,7 @@ public class SeleniumTest {
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
+                    167662, 167146, 166844, 166683, 164973, 164489, 165677, 167333, 167335, 167348,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
                     166683, 166683, 166683, 166683, 166683, 166683, 166683, 166683 ,166683 ,166683,
@@ -123,7 +126,7 @@ public class SeleniumTest {
     }
 
     private static void initializeDriverPool(int size) {
-        driverPool = new LinkedBlockingQueue<>();
+        driverPool = new ConcurrentLinkedQueue<>();
 
         for (int i = 0; i < size; i++) {
             ChromeOptions options = new ChromeOptions();
@@ -137,11 +140,7 @@ public class SeleniumTest {
     }
 
     private static WebDriver getDriverFromPool() {
-        try {
-            return driverPool.take();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        return driverPool.poll();
     }
 
     private static void returnDriverToPool(WebDriver driver) {
